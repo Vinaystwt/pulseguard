@@ -1,5 +1,5 @@
 import { createPublicClient, http, defineChain } from 'viem';
-import { SomniaReactivity } from '@somnia-chain/reactivity';
+import { Reactivity } from '@somnia-chain/reactivity';
 
 export const somniaTestnet = defineChain({
   id: 50312,
@@ -23,7 +23,8 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
-export const reactivity = new SomniaReactivity({
+// FIXED: Using Reactivity instead of SomniaReactivity
+export const reactivity = new Reactivity({
   publicClient: publicClient as any, 
 });
 
