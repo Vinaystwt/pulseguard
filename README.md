@@ -1,36 +1,152 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="[https://via.placeholder.com/150/09090f/4f46e5?text=Pulse+Guard](https://via.placeholder.com/150/09090f/4f46e5?text=Pulse+Guard)" alt="PulseGuard Protocol" width="120" />
 
-## Getting Started
+  <h1>🛡️ PulseGuard Protocol</h1>
+  <p><strong>The World's First Reactive Liquidity Protocol & Prediction Market</strong></p>
+  
+  [![Live App](https://img.shields.io/badge/Live_App-PulseGuard-4f46e5?style=flat-square&logo=vercel)](https://pulseguard-eight.vercel.app/)
+  [![Network](https://img.shields.io/badge/Network-Somnia_Testnet-10b981?style=flat-square)](https://somnia.network/)
+  [![Smart Contract](https://img.shields.io/badge/Contract-Deployed-blue?style=flat-square)](https://somnia-testnet.socialscan.io/address/0x1850d2a31CB8669Ba757159B638DE19Af532ba5e)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-First, run the development server:
+  <br />
+  <p>
+    <a href="#-the-problem--solution">Vision</a> •
+    <a href="#-core-primitives">Features</a> •
+    <a href="#-architecture">Architecture</a> •
+    <a href="#-getting-started">Quick Start</a> •
+    <a href="#-roadmap">Roadmap</a>
+  </p>
+</div>
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🛑 The Problem & Solution
+
+**Prediction markets force traders to take on massive volatility risk.** On traditional EVM networks, risk management (like a Stop-Loss) requires slow keeper bots, Chainlink Automation subscriptions, and inherently suffers from multi-block delays. This creates massive MEV vulnerabilities and catastrophic slippage.
+
+**PulseGuard solves this using Somnia's Native Reactivity.** Our platform executes risk triggers (Stop-Loss/Take-Profit) within the *exact same block* as the price update. Execution is an atomic, reactive consequence of the blockchain itself. Zero keeper bots. Zero race conditions. Zero slippage.
+
+---
+
+## ✨ Core Primitives
+
+### 1. Guard Mode (Reactive Risk Management)
+Traders can set precise downside limits before entering a pool. Powered by Somnia, these triggers fire instantly without relying on third-party automation infrastructure. 
+
+### 2. The LP Hub (Yield-Bearing Provisioning)
+PulseGuard is a two-sided AMM. Anyone can act as a Market Maker by seeding `STT` into the YES or NO pools. LPs underwrite the traders and earn a **0.5% royalty** on every trade, transforming prediction markets into yield-generating assets.
+
+### 3. Permissionless Scaling (On-Chain Registry)
+A fully decentralized market creation engine. For any user-created market (ID > 40), the frontend bypasses local storage and dynamically reads the metadata directly from the Somnia ledger. Infinite scaling, zero bottlenecks.
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+graph TD
+    subgraph "The PulseGuard Ecosystem"
+    T[Traders] -->|Capital + Guard Triggers| C((PulseGuard Core Engine))
+    LP[Liquidity Providers] -->|Underwrite Pools| C
+    end
+
+    subgraph "Somnia Native Layer"
+    C -->|Oracle State Change| R{Reactivity Reactor}
+    R -->|Same-Block Trigger| E[Atomic Execution]
+    E -->|0.5% Protocol Fee| LP
+    E -->|Zero-Slippage Exit| T
+    end
+
+    classDef core fill:#4f46e5,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef actor fill:#0f0f13,stroke:#4f46e5,stroke-width:1px,color:#fff;
+    classDef react fill:#10b981,stroke:#fff,stroke-width:2px,color:#000;
+    
+    class C core;
+    class T,LP actor;
+    class R,E react;
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 💻 Technical Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* **Smart Contracts:** Solidity (Deployed on Somnia Testnet)
+* **Frontend:** Next.js 14 (App Router), React, TypeScript
+* **Styling:** Tailwind CSS v4, Lucide React, Recharts
+* **Web3 Integration:** Wagmi, Viem
+* **Deployment:** Vercel Production Build
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📂 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+pulseguard/
+├── frontend/
+│   ├── src/
+│   │   ├── app/           # Next.js App Router (Pages & Layouts)
+│   │   ├── components/    # Reusable UI (BetForm, SquadBoard, etc.)
+│   │   ├── lib/           # Web3 Configs, Constants, and Utils
+│   │   └── styles/        # Global CSS and Tailwind config
+│   ├── public/            # Static assets
+│   └── package.json
+└── README.md
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🏁 Getting Started
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Prerequisites
+* Node.js (v18 or higher)
+* Git
+* A Web3 Wallet (MetaMask, Rabby) configured for the Somnia Testnet
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Vinaystwt/pulseguard.git
+   cd pulseguard/frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up Environment Variables:**
+   Create a `.env.local` file in the `frontend` directory (if required for custom RPCs):
+   ```env
+   NEXT_PUBLIC_SOMNIA_RPC_URL=https://dream-rpc.somnia.network/
+   NEXT_PUBLIC_CONTRACT_ADDRESS=0x1850d2a31CB8669Ba757159B638DE19Af532ba5e
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   Navigate to `http://localhost:3000` to interact with the protocol locally.
+
+---
+
+## 🗺 Roadmap
+
+- [x] MVP Deployment on Somnia Testnet
+- [x] Atomic Guard Mode Integration
+- [x] 0.5% LP Royalty Implementation
+- [ ] Dynamic AMM Bonding Curves
+- [ ] Multi-Asset Collateral Support (USDC, wETH)
+- [ ] Decentralized Identity Integration for Pulse Scores
+- [ ] Somnia Mainnet Deployment
+
+---
+
+## 🧠 The Architect
+
+**Built solo by Vinay.** Designed and engineered by a full-stack generalist and DeFi architect specializing in rapid prototyping, high-fidelity interfaces, and building next-generation Web3 infrastructure.
+
+<div align="center">
+  <p><i>Built for the <strong>Somnia Reactivity Hackathon</strong></i></p>
+</div>
