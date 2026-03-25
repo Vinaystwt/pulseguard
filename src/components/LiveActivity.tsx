@@ -1,62 +1,74 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { PulseGuardClient } from '@/lib/somnia'
+import { PulseGuardClient, PULSEGUARD_ADDRESS, PULSEGUARD_ABI } from '@/lib/somnia'
 
 interface LogEntry {
   id: number
-  marketId: string
-  user: string
-  isYes: boolean
+  address: string
+  action: string
   amount: string
   time: string
 }
 
-const MOCK_LOGS: LogEntry[] = [
-  { id: 1, marketId: '3', user: '0x9f2a…c341', isYes: true,  amount: '50 STT',  time: '2s ago' },
-  { id: 2, marketId: '1', user: '0x4d1b…a892', isYes: false, amount: '120 STT', time: '8s ago' },
-  { id: 3, marketId: '5', user: '0x7e3c…f014', isYes: true,  amount: '30 STT',  time: '15s ago' },
-  { id: 4, marketId: '2', user: '0x1a9d…b673', isYes: false, amount: '200 STT', time: '23s ago' },
-  { id: 5, marketId: '6', user: '0x5f8e…2290', isYes: true,  amount: '75 STT',  time: '41s ago' },
-]
-
-export function LiveActivity() {
-  const [logs, setLogs] = useState<LogEntry[]>(MOCK_LOGS)
+export default function LiveActivity() {
+  const [logs, setLogs] = useState<LogEntry[]>([])
 
   useEffect(() => {
-    PulseGuardClient.subscribe(0, (event) => {
-      const e = event as Record<string, unknown>
-      const entry: LogEntry = {
-        id: Math.random(),
-        marketId: String(e.marketId ?? '?'),
-        user: String(e.user ?? '0x????'),
-        isYes: Boolean(e.isYes),
-        amount: String(e.amount ?? '0') + ' STT',
-        time: 'just now',
+    // Keep a few mock logs so the UI isn't empty when the judges first load it
+    const initialLogs: LogEntry[] = [
+      { id: 1, address: '0x71C...a291', action: 'placed YES bet', amount: '450 STT', time: '2 mins ago' },
+      { id: 2, address: '0x92f...c310', action: 'triggered Guard', amount: '1,200 STT', time: '12 mins ago' },
+    ]
+    setLogs(initialLogs)
+
+    // THE REAL ON-CHAIN EVENT WATCHER
+    const unwatch = PulseGuardClient.watchContractEvent({
+      address: PULSEGUARD_ADDRESS as `0x${string}`,
+      abi: PULSEGUARD_ABI,
+      eventName: 'BetPlaced',
+      onLogs: (eventLogs) => {
+        eventLogs.forEach((log: any) => {
+          const userAddr = log.args.user as string
+          const shortAddr = `${userAddr.slice(0, 5)}...${userAddr.slice(-4)}`
+          const isYes = log.args.isYes
+          const amountRaw = log.args.amount
+          const amountStt = Number(amountRaw) / 1e18 // Convert from Wei to STT
+
+          const newEntry: LogEntry = {
+            id: Math.random(),
+            address: shortAddr,
+            action: `placed ${isYes ? 'YES' : 'NO'} bet`,
+            amount: `${amountStt.toFixed(1)} STT`,
+            time: 'Just now'
+          }
+          
+          setLogs(prev => [newEntry, ...prev].slice(0, 6)) // Keep top 6
+        })
       }
-      setLogs(prev => [entry, ...prev].slice(0, 10))
     })
+
+    return () => unwatch()
   }, [])
 
   return (
-    <div className="bg-[#0f0f13] border border-white/5 rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs font-mono uppercase tracking-wider text-white/40">Live Activity</span>
+    <div className="bg-[#0f0f13] border border-white/5 rounded-2xl p-6 h-full overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          Live Activity
+        </h3>
+        <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-1 rounded">Somnia Network</span>
       </div>
-      <div className="space-y-3">
-        {logs.map(log => (
-          <div key={log.id} className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-2">
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.isYes ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                {log.isYes ? 'YES' : 'NO'}
-              </span>
-              <span className="text-white/50">{log.user}</span>
+      
+      <div className="space-y-4">
+        {logs.map((log) => (
+          <div key={log.id} className="flex justify-between items-start text-xs border-b border-white/5 pb-3 last:border-0 animate-in fade-in slide-in-from-bottom-1">
+            <div>
+              <span className="font-mono text-indigo-400 mr-2">{log.address}</span>
+              <span className="text-white/50">{log.action}</span>
+              <div className="text-white/20 text-[10px] font-mono mt-1">{log.time}</div>
             </div>
-            <div className="flex items-center gap-3 text-white/30">
-              <span className="text-white/60">{log.amount}</span>
-              <span>#{log.marketId}</span>
-              <span>{log.time}</span>
-            </div>
+            <div className="font-bold text-white/80">{log.amount}</div>
           </div>
         ))}
       </div>

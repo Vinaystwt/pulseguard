@@ -7,6 +7,7 @@ import { wagmiConfig } from '@/lib/wagmiConfig'
 import { useState, useEffect } from 'react'
 import { ReactivityBanner } from '@/components/ReactivityBanner'
 import { WelcomeModal } from '@/components/WelcomeModal'
+import SomniaBadge from '@/components/SomniaBadge'
 
 function WalletButton() {
   const { connect } = useConnect()
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             <ReactivityBanner />
             <WelcomeModal />
+            <SomniaBadge />
           </QueryClientProvider>
         </WagmiProvider>
       </body>

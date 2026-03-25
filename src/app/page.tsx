@@ -1,61 +1,59 @@
-'use client';
-import { Market } from '@/lib/markets'
-import { useMarkets } from '@/hooks/useMarkets'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-
-function MarketCard({ market }: { market: Market }) {
-  const [timeLeft, setTimeLeft] = useState(market.endsInSeconds)
-  
-  useEffect(() => {
-    const int = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000)
-    return () => clearInterval(int)
-  }, [])
-
-  const mins = Math.floor(timeLeft / 60)
-  const secs = timeLeft % 60
-
-  return (
-    <Link href={`/market/${market.id}`} className="bg-[#0f0f13] border border-white/5 rounded-xl p-5 block hover:border-indigo-500/30 transition-all hover:-translate-y-1">
-      <div className="flex justify-between items-start mb-4">
-        <span className="text-[10px] px-2 py-1 rounded bg-white/5 text-white/60 font-bold uppercase tracking-wider">{market.category}</span>
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40 bg-white/5 px-2 py-1 rounded">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          {mins}:{secs.toString().padStart(2, '0')}
-        </div>
-      </div>
-      <h3 className="text-base font-bold text-white mb-5 line-clamp-2 h-12 leading-snug">{market.title}</h3>
-      
-      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden flex mb-3">
-        <div className="h-full bg-green-500 transition-all duration-500" style={{width: `${market.yesOdds}%`}} />
-        <div className="h-full bg-red-500 transition-all duration-500" style={{width: `${market.noOdds}%`}} />
-      </div>
-
-      <div className="flex justify-between text-xs font-bold mb-5 font-mono">
-        <span className="text-green-400">YES {market.yesOdds}¢</span>
-        <span className="text-red-400">NO {market.noOdds}¢</span>
-      </div>
-
-      <div className="flex justify-between text-[10px] font-mono text-white/30 border-t border-white/5 pt-3">
-        <span>Vol: {market.volume}</span>
-        <span>{market.trades} Trades</span>
-      </div>
-    </Link>
-  )
-}
+'use client'
+import { useState, useEffect } from 'react'
+import { MARKETS } from '@/lib/markets'
+import { MarketCard } from '@/components/MarketCard'
+import { useReadContract } from 'wagmi'
+import { PULSEGUARD_ABI, PULSEGUARD_ADDRESS } from '@/lib/somnia'
 
 export default function Home() {
-  const { markets } = useMarkets()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const { data: count }: any = useReadContract({
+    address: PULSEGUARD_ADDRESS as `0x${string}`,
+    abi: PULSEGUARD_ABI,
+    functionName: 'marketCount',
+  })
+
+  const totalOnChain = count ? Number(count) : 40
+  const userMarketIds = totalOnChain > 40 
+    ? Array.from({ length: totalOnChain - 40 }, (_, i) => (i + 41).toString()) 
+    : []
+
+  if (!mounted) return null
 
   return (
-    <div className="max-w-7xl mx-auto p-6 lg:p-8 mt-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Live Prediction Markets</h1>
-        <p className="text-sm text-white/40 font-mono">Place your bets. Set your on-chain guards. Experience sub-second reactivity.</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {markets.map(m => <MarketCard key={m.id} market={m} />)}
-      </div>
+    <div className="max-w-6xl mx-auto px-4 pt-12 pb-12 space-y-10">
+      <section className="space-y-6">
+        <div className="flex justify-between items-end px-1">
+          <div>
+            <h2 className="text-xl font-black text-white tracking-tighter uppercase italic">Verified Markets</h2>
+            <p className="text-[9px] font-mono text-indigo-400 uppercase tracking-[0.3em] mt-1">Curated by Somnia Node</p>
+          </div>
+          <span className="text-[9px] font-mono text-white/10 uppercase tracking-widest">{MARKETS.length} Active Registry</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {MARKETS.map((market) => (
+            <MarketCard key={market.id} {...market} />
+          ))}
+        </div>
+      </section>
+
+      {userMarketIds.length > 0 && (
+        <section className="space-y-6 border-t border-white/5 pt-10">
+          <div className="flex justify-between items-end px-1">
+            <div>
+              <h2 className="text-xl font-black text-indigo-400 tracking-tighter uppercase italic">Permissionless Feed</h2>
+              <p className="text-[9px] font-mono text-white/20 uppercase tracking-[0.3em] mt-1">Community Protocol Layer</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {userMarketIds.map((id) => (
+              <MarketCard key={id} id={id} title={`Market #${id}`} yesOdds={50} noOdds={50} volume="New" trades={0} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

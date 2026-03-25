@@ -1,118 +1,108 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
+import { parseEther } from 'viem'
+import { PULSEGUARD_ABI, PULSEGUARD_ADDRESS, somniaTestnet } from '@/lib/somnia'
 
-export default function CreateMarketPage() {
-  const { isConnected } = useAccount();
-  const [mounted, setMounted] = useState(false);
+export default function CreateMarket() {
+  const router = useRouter()
+  const { isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
+  const [title, setTitle] = useState('')
+  const [duration, setDuration] = useState('2592000') // 30 days default
+  const [liquidity, setLiquidity] = useState('1')
 
-  const [question, setQuestion] = useState('');
-  const [duration, setDuration] = useState('10 min');
-  const [customDuration, setCustomDuration] = useState('');
-  const [resType, setResType] = useState('Price Feed');
-  const [liquidity, setLiquidity] = useState('');
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const { data: count }: any = useReadContract({
+    address: PULSEGUARD_ADDRESS as `0x${string}`,
+    abi: PULSEGUARD_ABI,
+    functionName: 'marketCount',
+  })
 
-  useEffect(() => setMounted(true), []);
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
-  const handleLaunch = () => {
-    if (!isConnected || !question || !liquidity) return;
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    if (isSuccess) {
+      const nextId = count ? Number(count) + 1 : 41
+      // We wait a second for the blockchain state to settle
+      setTimeout(() => router.push(`/market/${nextId}`), 1500)
+    }
+  }, [isSuccess, count, router])
+
+  const handleCreate = () => {
+    if (!isConnected) return alert("Connect Wallet First!")
     
-    // Simulating the transaction delay for the hackathon UI demo
-    setStatus('success');
-    setTimeout(() => {
-      window.location.href = '/market/1';
-    }, 1500);
-  };
+    writeContract({
+      address: PULSEGUARD_ADDRESS as `0x${string}`,
+      abi: PULSEGUARD_ABI,
+      functionName: 'createMarket',
+      args: [title, BigInt(duration)],
+      value: parseEther(liquidity),
+      gas: BigInt(3000000), // Forced gas limit for Somnia
+      chainId: somniaTestnet.id
+    })
+  }
+
+  if (!mounted) return null
 
   return (
-    <div className="max-w-3xl mx-auto p-6 lg:p-12">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-3">Create a Market</h1>
-        <p className="text-sm text-white/40 font-mono">Anyone can create a micro-prediction market. It resolves on-chain.</p>
-      </div>
-
-      <div className="bg-[#0f0f13] border border-white/5 rounded-2xl p-8 space-y-8">
+    <div className="max-w-2xl mx-auto pt-20 px-6">
+      <div className="bg-[#0f0f13] border border-white/5 rounded-3xl p-8 space-y-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-50" />
+        
         <div>
-          <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-3 block">Market Question</label>
-          <input 
-            type="text" 
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Will BTC hit $110k before Friday?" 
-            className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-indigo-500 transition-colors" 
-          />
+          <h1 className="text-3xl font-black text-white tracking-tight">Launch Market</h1>
+          <p className="text-white/40 text-[10px] mt-2 font-mono uppercase tracking-[0.3em]">Protocol / New Permissionless Pool</p>
         </div>
 
-        <div>
-          <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-3 block">Duration</label>
-          <div className="flex flex-wrap gap-3">
-            {['1 min', '3 min', '10 min', 'Custom'].map(d => (
-              <div 
-                key={d} 
-                onClick={() => setDuration(d)} 
-                className={`px-5 py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all border ${duration === d ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50' : 'bg-white/5 text-white/50 border-transparent hover:bg-white/10'}`}
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-          {duration === 'Custom' && (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Market Question</label>
             <input 
-              type="number" 
-              value={customDuration}
-              onChange={(e) => setCustomDuration(e.target.value)}
-              placeholder="Duration in seconds (e.g. 3600)" 
-              className="w-full mt-3 bg-black/40 border border-white/10 rounded-xl p-4 text-white font-mono outline-none focus:border-indigo-500 transition-colors" 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Will BTC hit $1M this year?" 
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:border-indigo-500/50 outline-none transition-all text-lg"
             />
-          )}
-        </div>
-
-        <div>
-          <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-3 block">Resolution Source</label>
-          <div className="flex flex-wrap gap-3">
-            {['Price Feed', 'On-Chain Event', 'Manual'].map(r => (
-              <div 
-                key={r} 
-                onClick={() => setResType(r)} 
-                className={`px-5 py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all border ${resType === r ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-white/5 text-white/50 border-transparent hover:bg-white/10'}`}
-              >
-                {r}
-              </div>
-            ))}
           </div>
-        </div>
 
-        <div>
-          <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-3 block">Initial Liquidity (STT)</label>
-          <div className="flex items-center border border-white/10 rounded-xl overflow-hidden focus-within:border-indigo-500/50 transition-colors bg-black/40">
-            <input 
-              type="number" 
-              value={liquidity}
-              onChange={(e) => setLiquidity(e.target.value)}
-              placeholder="100" 
-              className="flex-1 bg-transparent px-4 py-4 text-white font-mono outline-none" 
-            />
-            <span className="px-4 text-xs font-mono text-white/30">STT</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Duration (Seconds)</label>
+              <input 
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Initial Liquidity (STT)</label>
+              <input 
+                type="number"
+                value={liquidity}
+                onChange={(e) => setLiquidity(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white font-mono"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="pt-4 border-t border-white/5">
-          {!mounted || !isConnected ? (
-             <button disabled className="w-full py-4 rounded-xl bg-white/5 text-white/30 font-bold uppercase tracking-widest text-sm cursor-not-allowed">
-               {mounted ? 'Connect Wallet to Launch' : 'Loading...'}
-             </button>
-          ) : (
-            <button 
-              onClick={handleLaunch} 
-              disabled={status === 'success' || !question || !liquidity} 
-              className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {status === 'success' ? 'Creating...' : 'Launch Market'}
-            </button>
+          <button 
+            onClick={handleCreate}
+            disabled={isPending || isConfirming || !title}
+            className="w-full py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/30 transition-all disabled:opacity-20 active:scale-95"
+          >
+            {isPending ? 'Check MetaMask...' : isConfirming ? 'Deploying to Somnia...' : 'Initialize Market ⚡️'}
+          </button>
+
+          {writeError && (
+            <p className="text-red-400 text-[10px] font-mono text-center uppercase tracking-widest">Error: {writeError.message.slice(0, 50)}...</p>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

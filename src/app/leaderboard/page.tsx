@@ -1,6 +1,8 @@
 'use client';
 import { PulseScoreBadge } from '@/components/PulseScoreBadge';
 import { getPulseScore } from '@/lib/pulseScore';
+import { useAccount } from 'wagmi';
+import { useState, useEffect } from 'react';
 
 const WALLETS = [
   "0x8f3C2a9B4e1D7F5c6A8B2E0d9C4F1a3B5c7D9e2F",
@@ -18,8 +20,16 @@ const WALLETS = [
 ];
 
 export default function LeaderboardPage() {
+  const { address, isConnected } = useAccount();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => { setMounted(true) }, []);
+
   const rankedData = WALLETS.map(w => ({ address: w, ...getPulseScore(w) }))
     .sort((a, b) => b.score - a.score);
+
+  const userScore = isConnected && address ? getPulseScore(address) : null;
+  const isUserInTop12 = isConnected && address && WALLETS.some(w => w.toLowerCase() === address.toLowerCase());
 
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8">
@@ -28,7 +38,7 @@ export default function LeaderboardPage() {
         <p className="text-sm text-white/40 font-mono">Ranked by prediction accuracy, not capital. Updated every block.</p>
       </div>
 
-      <div className="bg-[#0f0f13] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-[#0f0f13] border border-white/5 rounded-2xl overflow-hidden mb-12">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/40 border-b border-white/5 text-[10px] font-bold text-white/40 uppercase tracking-widest">
@@ -62,6 +72,25 @@ export default function LeaderboardPage() {
               );
             })}
           </tbody>
+          
+          {/* PINNED USER ROW (Injected Surgical UI) */}
+          {mounted && isConnected && address && !isUserInTop12 && userScore && (
+            <tbody className="border-t-2 border-indigo-500/30">
+              <tr className="bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors border-l-4 border-indigo-500">
+                <td className="p-4 pl-6 text-sm font-bold text-indigo-300">-</td>
+                <td className="p-4 text-sm font-mono text-indigo-300 flex items-center gap-2">
+                  {address.slice(0, 6)}…{address.slice(-4)}
+                  <span className="bg-indigo-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold tracking-wider">YOU</span>
+                </td>
+                <td className="p-4">
+                  <PulseScoreBadge address={address} />
+                </td>
+                <td className="p-4 text-right text-sm font-mono text-white/80">{userScore.winRate}%</td>
+                <td className="p-4 text-right text-sm font-mono text-white/80">{userScore.streak} 🔥</td>
+                <td className="p-4 pr-6 text-right text-sm font-mono text-white/40">{(userScore.score * 85).toLocaleString()} STT</td>
+              </tr>
+            </tbody>
+          )}
         </table>
         <div className="p-4 text-center bg-black/40 border-t border-white/5 text-[10px] font-mono text-indigo-400/70">
           Your wallet connects automatically. Beat the Oracles.
