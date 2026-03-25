@@ -1,56 +1,54 @@
-import { createPublicClient, http, defineChain } from 'viem';
-import { Reactivity } from '@somnia-chain/reactivity';
+'use client'
+import { createPublicClient, http } from 'viem'
+import { somniaTestnet } from './wagmiConfig'
 
-export const somniaTestnet = defineChain({
-  id: 50312,
-  name: 'Somnia Testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Somnia Testnet Token',
-    symbol: 'STT',
-  },
-  rpcUrls: {
-    default: { http: ['https://dream-rpc.somnia.network/'] },
-    public: { http: ['https://dream-rpc.somnia.network/'] },
-  },
-  blockExplorers: {
-    default: { name: 'SocialScan', url: 'https://somnia-testnet.socialscan.io' },
-  },
-});
-
-export const publicClient = createPublicClient({
+const publicClient = createPublicClient({
   chain: somniaTestnet,
   transport: http(),
-});
+})
 
-// FIXED: Using Reactivity instead of SomniaReactivity
-export const reactivity = new Reactivity({
-  publicClient: publicClient as any, 
-});
-
-export const PULSEGUARD_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
+const PULSEGUARD_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`
 
 export const PULSEGUARD_ABI = [
-  "function createMarket(string description, uint256 durationSeconds, uint256 initialOraclePrice) external returns (uint256)",
-  "function placeBet(uint256 marketId, bool isYes, uint256 stopLossPrice, uint256 takeProfitPrice) external payable",
-  "function markets(uint256) external view returns (uint256 id, string description, uint256 endTime, uint256 yesAmount, uint256 noAmount, bool resolved, bool outcome, uint256 oraclePriceAtCreation)",
-  "event MarketCreated(uint256 indexed marketId, string description, uint256 endTime, uint256 oraclePriceAtCreation)",
-  "event BetPlaced(uint256 indexed marketId, address indexed user, bool isYes, uint256 amount, uint256 stopLossPrice, uint256 takeProfitPrice)",
-  "event StopLossExecuted(uint256 indexed marketId, address indexed user, uint256 payout, uint256 executePrice)"
-] as const;
+  { "type": "function", "name": "createMarket", "inputs": [
+      { "name": "description", "type": "string" },
+      { "name": "durationSeconds", "type": "uint256" },
+      { "name": "initialOraclePrice", "type": "uint256" }
+    ], "outputs": [], "stateMutability": "nonpayable" },
+  { "type": "function", "name": "placeBet", "inputs": [
+      { "name": "marketId", "type": "uint256" },
+      { "name": "isYes", "type": "bool" },
+      { "name": "stopLossPrice", "type": "uint256" },
+      { "name": "takeProfitPrice", "type": "uint256" }
+    ], "outputs": [], "stateMutability": "payable" },
+  { "type": "function", "name": "markets", "inputs": [{ "name": "", "type": "uint256" }],
+    "outputs": [
+      { "name": "id", "type": "uint256" },
+      { "name": "description", "type": "string" },
+      { "name": "endTime", "type": "uint256" },
+      { "name": "yesAmount", "type": "uint256" },
+      { "name": "noAmount", "type": "uint256" },
+      { "name": "resolved", "type": "bool" },
+      { "name": "outcome", "type": "bool" },
+      { "name": "oraclePriceAtCreation", "type": "uint256" }
+    ], "stateMutability": "view" },
+  { "type": "event", "name": "BetPlaced", "inputs": [
+      { "name": "marketId", "type": "uint256", "indexed": true },
+      { "name": "user", "type": "address", "indexed": true },
+      { "name": "isYes", "type": "bool" },
+      { "name": "amount", "type": "uint256" }
+    ] }
+] as const
 
 export class PulseGuardClient {
-  static subscribeToMarketEvents(marketId: number, onEvent: (data: any) => void) {
-    console.log(`[Reactivity] Subscribing to market ${marketId}...`);
-    
-    const subscription = reactivity.subscribe({
-      address: PULSEGUARD_CONTRACT_ADDRESS,
-      topics: [],
-    }, (event) => {
-      console.log("[Reactivity] Same-block event received:", event);
-      onEvent(event);
-    });
-
-    return subscription;
+  static subscribe(_marketId: number, callback: (event: unknown) => void) {
+    return publicClient.watchContractEvent({
+      address: PULSEGUARD_ADDRESS,
+      abi: PULSEGUARD_ABI,
+      eventName: 'BetPlaced',
+      onLogs: callback,
+    })
   }
 }
+
+export { publicClient, PULSEGUARD_ADDRESS }

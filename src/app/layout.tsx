@@ -1,35 +1,76 @@
-import type { Metadata } from "next";
-import { Providers } from "@/components/Providers";
-import "./globals.css";
+'use client'
+import './globals.css'
+import { WagmiProvider, useConnect, useAccount, useDisconnect } from 'wagmi'
+import { injected } from 'wagmi/connectors'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { wagmiConfig } from '@/lib/wagmiConfig'
+import { useState, useEffect } from 'react'
+import { ReactivityBanner } from '@/components/ReactivityBanner'
+import { WelcomeModal } from '@/components/WelcomeModal'
 
-export const metadata: Metadata = {
-  title: "PulseGuard | Reactive Micro-Bets",
-  description: "Instant guards. Zero latency. Built on Somnia.",
-};
+function WalletButton() {
+  const { connect } = useConnect()
+  const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) {
+    return (
+      <button className="text-sm px-3 py-1.5 rounded-md bg-indigo-600 font-medium opacity-0">
+        Connect Wallet
+      </button>
+    )
+  }
+
+  if (isConnected && address) {
+    return (
+      <button
+        onClick={() => disconnect()}
+        className="text-sm font-mono px-3 py-1.5 rounded-md border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+      >
+        {address.slice(0, 6)}…{address.slice(-4)}
+      </button>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => connect({ connector: injected() })}
+      className="text-sm px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors font-medium"
+    >
+      Connect Wallet
+    </button>
+  )
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient())
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#0a0a0f] text-white selection:bg-indigo-500/30">
-        <Providers>
-          <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center animate-pulse">
-                  <div className="w-3 h-3 bg-white rounded-full" />
-                </div>
-                <span className="font-bold text-xl tracking-tight neon-text">PulseGuard</span>
+      <body className="bg-[#09090f] text-white antialiased">
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
+            <nav className="border-b border-white/5 px-6 py-3 flex items-center justify-between sticky top-0 z-40 bg-[#09090f]/90 backdrop-blur">
+              <a href="/" className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                <span className="font-bold text-lg tracking-tight hover:text-indigo-400 transition-colors">PulseGuard</span>
+                <span className="text-xs text-white/30 font-mono ml-1">on Somnia</span>
+              </a>
+              <div className="flex items-center gap-6 text-sm text-white/50">
+                <a href="/" className="hover:text-white transition-colors">Markets</a>
+                <a href="/create" className="hover:text-white transition-colors">Create</a>
+                <a href="/leaderboard" className="hover:text-white transition-colors">Pulse Scores</a>
               </div>
-              <button className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-colors font-medium text-sm">
-                Connect Wallet
-              </button>
-            </div>
-          </nav>
-          <main className="max-w-7xl mx-auto px-6 py-12">
+              <WalletButton />
+            </nav>
             {children}
-          </main>
-        </Providers>
+            <ReactivityBanner />
+            <WelcomeModal />
+          </QueryClientProvider>
+        </WagmiProvider>
       </body>
     </html>
-  );
+  )
 }
