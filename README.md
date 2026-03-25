@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="[https://via.placeholder.com/150/09090f/4f46e5?text=Pulse+Guard](https://via.placeholder.com/150/09090f/4f46e5?text=Pulse+Guard)" alt="PulseGuard Protocol" width="120" />
-
+  
   <h1>🛡️ PulseGuard Protocol</h1>
   <p><strong>The World's First Reactive Liquidity Protocol & Prediction Market</strong></p>
   
